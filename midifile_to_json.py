@@ -30,11 +30,11 @@ midfreq = [(a / 32) * (2 ** ((x - 9) / 12)) for x in range(0, 128)]
 
 hzbin = 22050.0 / 1024.0
 
-for fn in os.listdir('./midis/midi'):
+for fn in os.listdir('out/midiparts/1sec/'):
     if fn.endswith(".mid"):
         print(fn)
         fn = fn[:-4]
-        mid = mido.MidiFile('./midis/midi/' + fn + '.mid')
+        mid = mido.MidiFile('out/midiparts/1sec/' + fn + '.mid')
 
         currentTime = 0
         channels = {}
@@ -54,7 +54,7 @@ for fn in os.listdir('./midis/midi'):
 
         for sec in range(0, int(mid.length), 1):
 
-            if os.path.isfile('1secmidsSpec/' + fn + '_' + str(sec) + '_mask.npz'):
+            if os.path.isfile('out/masks/1sec/' + fn + '_' + str(sec) + '_mask.npz'):
                 continue
 
             notes = [n for n in channels[0][0] if n[0] >= sec and n[0] < sec + 1]
@@ -78,8 +78,8 @@ for fn in os.listdir('./midis/midi'):
             class_ids = np.array([n[1] for n in notes])
 
             #np.save('1secmidsSpec/' + fn + '_' + str(sec) + '_mask.npy', mask)
-            np.savez_compressed('1secmidsSpec/' + fn + '_' + str(sec) + '_mask.npz', mask=mask)
-            np.save('1secmidsSpec/' + fn + '_' + str(sec) + '_notes.npy', notes)
+            np.savez_compressed('out/masks/1sec/' + fn + '_' + str(sec) + '_mask.npz', mask=mask)
+            np.save('out/masks/1sec/' + fn + '_' + str(sec) + '_notes.npy', notes)
             # imwrite('1secmidsSpec/' + fn + '_' + str(sec) + '_mask.png', mask[:,:,0])
             # for i, note in enumerate(notes):
             #     imwrite('1secmidsSpec/masks/' + fn + '_' + str(sec) + '_' + str(i) + '_' + str(note[1]) + '_mask.png', mask[:,:,i])

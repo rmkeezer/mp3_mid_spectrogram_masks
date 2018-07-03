@@ -30,12 +30,12 @@ def midifile_to_dict(mid):
     }
 
 stft_total = []
-for fn in os.listdir('./midis/mp3'):
+for fn in os.listdir('in/songswithmids/wavs/'):
     if fn.endswith(".wav"):
         print(fn)
-        input_signal = audio_utilities.get_signal('midis/mp3/' + fn, expected_fs=44100)
+        input_signal = audio_utilities.get_signal('in/songswithmids/wavs/' + fn, expected_fs=44100)
         fn = fn[:-4]
-        mid = mido.MidiFile('./midis/oldmidi/' + fn + '.mid')
+        mid = mido.MidiFile('in/songswithmids/oldmidi/' + fn + '.mid')
         # middict = midifile_to_dict(mid)
         # with open('test.json','w') as f:
         #     f.write(json.dumps(middict, indent=2))
@@ -99,4 +99,4 @@ for fn in os.listdir('./midis/mp3'):
             middict = midifile_to_dict(mid)
             with open('test.json','w') as f:
                 f.write(json.dumps(middict, indent=2))
-        mid.save('midis/midi/' + fn + '.mid')
+        mid.save('in/songswithmids/midis/' + fn + '.mid')

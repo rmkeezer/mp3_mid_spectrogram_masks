@@ -1,18 +1,19 @@
 #!/bin/bash
-for f in midis/mp3/*.mp3
+for f in in/songswithmids/mp3s/*.mp3
 do
+    fin=$f
+    length=$(ffprobe -v error -show_entries format=duration   -of default=noprint_wrappers=1:nokey=1 "$fin")
     f=$(echo "${f%.mp3}")
-    f=$(echo "${f#midis/}")
+    f=$(echo "${f#in/songswithmids/mp3s/}")
     echo $f
-    length=$(ffprobe -v error -show_entries format=duration   -of default=noprint_wrappers=1:nokey=1 midis/"$f".mp3)
+    echo $fin
     len=$(echo ${length%.*})
     for i in `seq 0 1 $len`
     do 
-        out=$(echo 1secmids/"$f"_$i.wav)
-        if [ -e out ]
+        out=$(echo out/songparts/"$f"_$i.wav)
+        if [ ! -f $out ]
         then
-            in=$(echo midis/"$f".mp3)
-            ffmpeg -ss $i -i "$in" -f wav -t 1 "$out"
+            ffmpeg -ss $i -i "$fin" -f wav -t 1 "$out"
         fi
     done
 done

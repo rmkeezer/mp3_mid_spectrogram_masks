@@ -18,15 +18,15 @@ import sys
 stft_total = []
 w = 0
 i = 0
-for fn in os.listdir('./1secmids/mp3'):
+for fn in os.listdir('out/songparts/1sec/'):
     if fn.endswith(".wav"):
         try:
             print(fn)
 
-            if os.path.isfile('1secmidsSpec/' + fn +'.png'.format(str(w).zfill(3))):
+            if os.path.isfile('out/specs/1sec/' + fn +'.png'.format(str(w).zfill(3))):
                 continue
 
-            input_signal = audio_utilities.get_signal('1secmids/mp3/' + fn, expected_fs=44100)
+            input_signal = audio_utilities.get_signal('out/songparts/1sec/' + fn, expected_fs=44100)
             fft_size = 2048
             hopsamp = fft_size // 16
             stft_full = audio_utilities.stft_for_reconstruction(input_signal,
@@ -47,7 +47,7 @@ for fn in os.listdir('./1secmids/mp3'):
             stft_mag = stft_mag[:, :256]
             #print(stft_mag.shape)
             
-            imwrite('1secmidsSpec/' + fn +'.png'.format(str(w).zfill(3)), stft_mag.T)
+            imwrite('out/specs/1sec/' + fn +'.png'.format(str(w).zfill(3)), stft_mag.T)
             stft_total = []
             # i = 0
             w += 1
