@@ -1,3 +1,6 @@
 [submodule "mido"]
 	path = mido
 	url = https://github.com/rmkeezer/mido.git
+[submodule "griffin_lim"]
+	path = griffin_lim
+	url = https://github.com/rmkeezer/griffin_lim.git
