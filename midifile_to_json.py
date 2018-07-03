@@ -1,6 +1,11 @@
 import sys
 import json
 import mido
+import os
+
+import numpy as np
+import cv2
+from imageio import imwrite
 
 
 def midifile_to_dict(mid):
@@ -25,7 +30,6 @@ midfreq = [(a / 32) * (2 ** ((x - 9) / 12)) for x in range(0, 128)]
 
 hzbin = 22050.0 / 1024.0
 
-import os
 for fn in os.listdir('./midis/midi'):
     if fn.endswith(".mid"):
         print(fn)
@@ -54,10 +58,6 @@ for fn in os.listdir('./midis/midi'):
                 continue
 
             notes = [n for n in channels[0][0] if n[0] >= sec and n[0] < sec + 1]
-
-            import numpy as np
-            import cv2
-            from imageio import imwrite
 
             count = len(notes)
             mask = np.zeros([256, 329, count], dtype=np.uint8)

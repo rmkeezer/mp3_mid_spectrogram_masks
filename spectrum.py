@@ -9,7 +9,7 @@ import os
 import numpy as np
 from imageio import imwrite
 
-import audio_utilities
+import griffin_lim.audio_utilities as audio_utilities
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
