@@ -9,7 +9,7 @@ import os
 import numpy as np
 from imageio import imwrite
 
-import audio_utilities
+from griffin_lim import audio_utilities
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
@@ -30,12 +30,17 @@ def midifile_to_dict(mid):
     }
 
 stft_total = []
-for fn in os.listdir('in/songswithmids/wavs/'):
+infn = 'in/songswithmidsALL/'
+for fn in os.listdir(infn + 'wavs/'):
     if fn.endswith(".wav"):
         print(fn)
-        input_signal = audio_utilities.get_signal('in/songswithmids/wavs/' + fn, expected_fs=44100)
+        input_signal = audio_utilities.get_signal(infn + 'wavs/' + fn, expected_fs=44100)
         fn = fn[:-4]
-        mid = mido.MidiFile('in/songswithmids/oldmidi/' + fn + '.mid')
+        try:
+            mid = mido.MidiFile(infn + 'oldmidis/' + fn + '.mid')
+        except Exception as e:
+            print(e)
+            continue
         # middict = midifile_to_dict(mid)
         # with open('test.json','w') as f:
         #     f.write(json.dumps(middict, indent=2))
@@ -66,37 +71,45 @@ for fn in os.listdir('in/songswithmids/wavs/'):
         print(tickDelay)
         print(tickSkip)
         firstTemp = True
-        for i, track in enumerate(mid.tracks):
-            for i in range(len(track)):
-                msg = track[i]
-                if msg.type == "set_tempo":
-                    print(msg)
-                    if tickDelay >= 0:
-                        msg.time += tickDelay
-                        track.insert(i,mido.MetaMessage('set_tempo',time=0,tempo=500000))
-                        break
-                    else:
-                        if not firstTemp:
-                            msg.time += tickSkip
-                            if msg.time < 0:
-                                print("BELOW ZERO")
-                                tickSkip = msg.time
-                                print(tickSkip)
-                                msg.time = 0
-                                continue
+        try:
+            for i, track in enumerate(mid.tracks):
+                for i in range(len(track)):
+                    msg = track[i]
+                    if msg.type == "set_tempo":
+                        print(msg)
+                        if tickDelay >= 0:
+                            msg.time += tickDelay
+                            track.insert(i,mido.MetaMessage('set_tempo',time=0,tempo=500000))
                             break
-                        firstTemp = False
-                if msg.type == "note_on":
-                    print(msg)
-                    if tickDelay >= 0:
-                        msg.time += tickDelay
-                    else:
-                        msg.time += tickSkip
-                    if msg.time < 0:
-                        asjdkfas
-                    break
+                        else:
+                            if not firstTemp:
+                                msg.time += tickSkip
+                                if msg.time < 0:
+                                    print("BELOW ZERO")
+                                    tickSkip = msg.time
+                                    print(tickSkip)
+                                    msg.time = 0
+                                    continue
+                                break
+                            firstTemp = False
+                    if msg.type == "note_on":
+                        print(msg)
+                        if tickDelay >= 0:
+                            msg.time += tickDelay
+                        else:
+                            msg.time += tickSkip
+                        if msg.time < 0:
+                            asjdkfas
+                        break
+        except Exception as e:
+            print(e)
+            continue
         if tickDelay < 0:
             middict = midifile_to_dict(mid)
             with open('test.json','w') as f:
                 f.write(json.dumps(middict, indent=2))
-        mid.save('in/songswithmids/midis/' + fn + '.mid')
+        try:
+            mid.save(infn + 'midis/' + fn + '.mid')
+        except Exception as e:
+            print(e)
+            continue

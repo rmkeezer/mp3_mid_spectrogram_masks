@@ -30,56 +30,86 @@ midfreq = [(a / 32) * (2 ** ((x - 9) / 12)) for x in range(0, 128)]
 
 hzbin = 22050.0 / 1024.0
 
-for fn in os.listdir('out/midiparts/1sec/'):
+infn = 'in/songswithmidsALL/midis/'
+outfnMask = 'out/masks/1secALL/'
+for fn in os.listdir(infn):
     if fn.endswith(".mid"):
         print(fn)
         fn = fn[:-4]
-        mid = mido.MidiFile('out/midiparts/1sec/' + fn + '.mid')
+        mid = mido.MidiFile(infn + fn + '.mid')
 
         currentTime = 0
         channels = {}
-        for msg in mid:
-            currentTime += msg.time
-            if msg.type == 'program_change':
-                if channels.get(msg.channel) != None and msg.time != 0:
-                    print("BAD CHANNEL CHANGE")
-                    asdf
-                channels[msg.channel] = ([],msg.program)
-            if msg.type == 'note_on':
-                if msg.velocity != 0:
-                    channels[msg.channel][0].append((currentTime, msg.note))
-        with open('test.json','w') as f:
-            f.write(json.dumps(channels, indent=2))
+        # for track in mid.tracks:
+        #     channels[track.name] = []
+        #     for msg in track:
+        #         channels[track.name].append(msg.dict())
+        try:
+            for msg in mid:
+                currentTime += msg.time
+                if msg.type == 'program_change':
+                    if channels.get(msg.channel) != None and msg.time != 0:
+                        print("BAD CHANNEL CHANGE")
+                        asdf
+                    channels[msg.channel] = ([],msg.program)
+                if msg.type == 'note_on':
+                    if channels.get(msg.channel) == None:
+                        channels[msg.channel] = ([],0)
+                    if msg.velocity != 0:
+                        channels[msg.channel][0].append((currentTime, msg.note, 1))
+                    else:
+                        for i in range(len(channels[msg.channel][0])):
+                            onnote = channels[msg.channel][0][-(i+1)]
+                            if onnote[1] == msg.note:
+                                channels[msg.channel][0][-(i+1)] = (onnote[0], onnote[1], currentTime-onnote[0])
+                                break
+        except Exception as e:
+            print(e)
+            print("BAD MID")
+            os.rename(infn + fn + '.mid', infn + 'bad/' + fn + '.mid')
+            continue
+        # with open('test.json','w') as f:
+        #     f.write(json.dumps(channels, indent=2))
 
 
         for sec in range(0, int(mid.length), 1):
 
-            if os.path.isfile('out/masks/1sec/' + fn + '_' + str(sec) + '_mask.npz'):
+            if os.path.isfile(outfnMask + fn + '_' + str(sec) + '_mask.npz'):
                 continue
 
-            notes = [n for n in channels[0][0] if n[0] >= sec and n[0] < sec + 1]
+            notechannels = []
+            maskchannels = []
+            for j in channels.keys():
+                notes = [n for n in channels[j][0] if n[0] >= sec and n[0] < sec + 1]
 
-            count = len(notes)
-            mask = np.zeros([256, 329, count], dtype=np.uint8)
-            for i, note in enumerate(notes):
-                posy = int(midfreq[note[1]] / hzbin)
-                posx = int(((note[0]%1)) * 329)
-                mask[:, :, i] = draw_shape(mask[:, :, i].copy(),
-                                                        'circle', (posx, posy, 10), 255)
-            if count == 0:
-                mask = np.zeros([256, 329, 1], dtype=np.uint8) 
+                count = len(notes)
+                mask = np.zeros([256, 329, count], dtype=np.uint8)
+                for i, note in enumerate(notes):
+                    posy = int(midfreq[note[1]] / hzbin)
+                    posx = int(((note[0]%1)) * 329)
+                    endposx = int(note[2] * 329)
+                    mask[:, :, i] = draw_shape(mask[:, :, i].copy(),
+                                                            'circle', (posx, posy, 5), 255)
+                    mask[:, :, i] = cv2.rectangle(mask[:, :, i].copy(),(posx,posy-5),(min(posx+endposx,328),posy+5), 255, -1)
+                if count == 0:
+                    mask = np.zeros([256, 329, 1], dtype=np.uint8)
+                notechannels.append((notes,channels[j][1]))
+                maskchannels.append((mask, channels[j][1]))
             # Handle occlusions
-            occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
-            for i in range(count - 2, -1, -1):
-                mask[:, :, i] = mask[:, :, i] * occlusion
-                occlusion = np.logical_and(
-                    occlusion, np.logical_not(mask[:, :, i]))
+            # occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
+            # for i in range(count - 2, -1, -1):
+            #     mask[:, :, i] = mask[:, :, i] * occlusion
+            #     occlusion = np.logical_and(
+            #         occlusion, np.logical_not(mask[:, :, i]))
             # Map class names to class IDs.
             class_ids = np.array([n[1] for n in notes])
 
             #np.save('1secmidsSpec/' + fn + '_' + str(sec) + '_mask.npy', mask)
-            np.savez_compressed('out/masks/1sec/' + fn + '_' + str(sec) + '_mask.npz', mask=mask)
-            np.save('out/masks/1sec/' + fn + '_' + str(sec) + '_notes.npy', notes)
-            # imwrite('1secmidsSpec/' + fn + '_' + str(sec) + '_mask.png', mask[:,:,0])
+            np.savez_compressed(outfnMask + fn + '_' + str(sec) + '_mask.npz', mask=maskchannels)
+            np.save(outfnMask + fn + '_' + str(sec) + '_notes.npy', notechannels)
+            # for i in range(len(mask[0,0])):
+            #     imwrite('out/masks/1sec/' + fn + '_' + str(sec) + '_' + str(i) + '_mask.png', mask[:,:,i])
             # for i, note in enumerate(notes):
             #     imwrite('1secmidsSpec/masks/' + fn + '_' + str(sec) + '_' + str(i) + '_' + str(note[1]) + '_mask.png', mask[:,:,i])
+
+        os.rename(infn + fn + '.mid', infn + 'done/' + fn + '.mid')
