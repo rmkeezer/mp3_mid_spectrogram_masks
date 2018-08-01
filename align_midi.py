@@ -30,7 +30,7 @@ def midifile_to_dict(mid):
     }
 
 stft_total = []
-infn = 'in/songswithmidsALL/'
+infn = 'in/songswithmids/'
 for fn in os.listdir(infn + 'wavs/'):
     if fn.endswith(".wav"):
         print(fn)

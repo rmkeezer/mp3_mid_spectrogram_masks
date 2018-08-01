@@ -28,15 +28,18 @@ def draw_shape(image, shape, dims, color):
 a = 440
 midfreq = [(a / 32) * (2 ** ((x - 9) / 12)) for x in range(0, 128)]
 
-hzbin = 22050.0 / 1024.0
+fft_size = 8192
+hzbin = 22050.0 / (fft_size / 2)
 
-infn = 'in/songswithmidsALL/midis/'
-outfnMask = 'out/masks/1secALL/'
+infn = 'in/songswithmids/midis/'
+outfnMask = 'out/masks/6secSuperUHQ2/'
 for fn in os.listdir(infn):
     if fn.endswith(".mid"):
         print(fn)
         fn = fn[:-4]
+        
         mid = mido.MidiFile(infn + fn + '.mid')
+
 
         currentTime = 0
         channels = {}
@@ -56,12 +59,12 @@ for fn in os.listdir(infn):
                     if channels.get(msg.channel) == None:
                         channels[msg.channel] = ([],0)
                     if msg.velocity != 0:
-                        channels[msg.channel][0].append((currentTime, msg.note, 1))
+                        channels[msg.channel][0].append((currentTime, msg.note, 1, msg.velocity))
                     else:
                         for i in range(len(channels[msg.channel][0])):
                             onnote = channels[msg.channel][0][-(i+1)]
                             if onnote[1] == msg.note:
-                                channels[msg.channel][0][-(i+1)] = (onnote[0], onnote[1], currentTime-onnote[0])
+                                channels[msg.channel][0][-(i+1)] = (onnote[0], onnote[1], currentTime-onnote[0], onnote[3])
                                 break
         except Exception as e:
             print(e)
@@ -72,7 +75,11 @@ for fn in os.listdir(infn):
         #     f.write(json.dumps(channels, indent=2))
 
 
-        for sec in range(0, int(mid.length), 1):
+        stride = 6
+        pixWidth = 501
+        pixHeight = 512
+        radius = 4 #(note[3] // 10)
+        for sec in range(0, int(mid.length), stride):
 
             if os.path.isfile(outfnMask + fn + '_' + str(sec) + '_mask.npz'):
                 continue
@@ -80,19 +87,19 @@ for fn in os.listdir(infn):
             notechannels = []
             maskchannels = []
             for j in channels.keys():
-                notes = [n for n in channels[j][0] if n[0] >= sec and n[0] < sec + 1]
+                notes = [n for n in channels[j][0] if n[0] >= sec and n[0] < sec + stride]
 
                 count = len(notes)
-                mask = np.zeros([256, 329, count], dtype=np.uint8)
+                mask = np.zeros([pixHeight, pixWidth, max(count, 1)], dtype=np.uint8)
+                print(str(j) + ":" + str(sec))
                 for i, note in enumerate(notes):
                     posy = int(midfreq[note[1]] / hzbin)
-                    posx = int(((note[0]%1)) * 329)
-                    endposx = int(note[2] * 329)
+                    posx = int(((note[0]%stride)/stride) * pixWidth)
+                    #print(note[0])
+                    endposx = int(note[2]/stride * pixWidth)
                     mask[:, :, i] = draw_shape(mask[:, :, i].copy(),
-                                                            'circle', (posx, posy, 5), 255)
-                    mask[:, :, i] = cv2.rectangle(mask[:, :, i].copy(),(posx,posy-5),(min(posx+endposx,328),posy+5), 255, -1)
-                if count == 0:
-                    mask = np.zeros([256, 329, 1], dtype=np.uint8)
+                                                            'circle', (posx, posy, radius), 255)
+                    mask[:, :, i] = cv2.rectangle(mask[:, :, i].copy(),(posx,posy-radius),(min(posx+endposx,pixWidth),posy+radius), 255, -1)
                 notechannels.append((notes,channels[j][1]))
                 maskchannels.append((mask, channels[j][1]))
             # Handle occlusions
@@ -104,12 +111,13 @@ for fn in os.listdir(infn):
             # Map class names to class IDs.
             class_ids = np.array([n[1] for n in notes])
 
-            #np.save('1secmidsSpec/' + fn + '_' + str(sec) + '_mask.npy', mask)
+            #np.save(outfnMask + fn + '_' + str(sec) + '_mask.npy', mask)
             np.savez_compressed(outfnMask + fn + '_' + str(sec) + '_mask.npz', mask=maskchannels)
             np.save(outfnMask + fn + '_' + str(sec) + '_notes.npy', notechannels)
+            #imwrite(outfnMask + fn + '_' + str(sec) + '_mask.png', mask[:,:,0])
             # for i in range(len(mask[0,0])):
-            #     imwrite('out/masks/1sec/' + fn + '_' + str(sec) + '_' + str(i) + '_mask.png', mask[:,:,i])
+            #     imwrite(outfnMask + fn + '_' + str(sec) + '_' + str(i) + '_mask.png', mask[:,:,i])
             # for i, note in enumerate(notes):
-            #     imwrite('1secmidsSpec/masks/' + fn + '_' + str(sec) + '_' + str(i) + '_' + str(note[1]) + '_mask.png', mask[:,:,i])
+            #     imwrite(outfnMask + fn + '_' + str(sec) + '_' + str(i) + '_' + str(note[1]) + '_mask.png', mask[:,:,i])
 
         os.rename(infn + fn + '.mid', infn + 'done/' + fn + '.mid')
