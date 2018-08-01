@@ -77,8 +77,9 @@ for fn in os.listdir(infn):
 
         stride = 6
         pixWidth = 501
+        realWidth = 516 # adjust this to match with spectrogram notes
         pixHeight = 512
-        radius = 4 #(note[3] // 10)
+        radius = 2 #(note[3] // 10)
         for sec in range(0, int(mid.length), stride):
 
             if os.path.isfile(outfnMask + fn + '_' + str(sec) + '_mask.npz'):
@@ -94,9 +95,9 @@ for fn in os.listdir(infn):
                 print(str(j) + ":" + str(sec))
                 for i, note in enumerate(notes):
                     posy = int(midfreq[note[1]] / hzbin)
-                    posx = int(((note[0]%stride)/stride) * pixWidth)
+                    posx = int(((note[0]%stride)/stride) * realWidth) - ((realWidth-pixWidth)//2)
                     #print(note[0])
-                    endposx = int(note[2]/stride * pixWidth)
+                    endposx = int(note[2]/stride * realWidth)
                     mask[:, :, i] = draw_shape(mask[:, :, i].copy(),
                                                             'circle', (posx, posy, radius), 255)
                     mask[:, :, i] = cv2.rectangle(mask[:, :, i].copy(),(posx,posy-radius),(min(posx+endposx,pixWidth),posy+radius), 255, -1)
